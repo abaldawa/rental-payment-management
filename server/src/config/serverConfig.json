@@ -1,0 +1,13 @@
+{
+    "httpServer": {
+      "port": 3000
+    },
+    "mongodbConfig": {
+      "dbHost": "localhost",
+      "dbPort": "27017",
+      "dbName": "rental_contracts",
+      "dbUser": "",
+      "dbPassword": "",
+      "authSource": ""
+    }
+}
