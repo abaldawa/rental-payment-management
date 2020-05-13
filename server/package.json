@@ -6,8 +6,8 @@
   "scripts": {
     "clean": "rimraf ./build",
     "lint": "./node_modules/.bin/eslint . --ext .ts",
-    "start": "npm run build && node ./build/src/server.js",
-    "start:watch": "npm run build:watch & nodemon --inspect ./build/src/server.js",
+    "start": "npm run build && NODE_OPTIONS=--enable-source-maps node ./build/src/server.js",
+    "start:watch": "npm run build:watch & NODE_OPTIONS=--enable-source-maps nodemon --inspect ./build/src/server.js",
     "build": "npm run clean && node_modules/.bin/tsc",
     "build:watch": "npm run build -- -w",
     "test": "echo \"Error: no test specified\" && exit 1"
