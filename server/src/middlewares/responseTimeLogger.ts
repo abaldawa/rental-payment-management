@@ -7,6 +7,20 @@ import { Context, Next } from 'koa';
 import logger from '../logger/logger';
 
 /**
+ * Logs request time taken
+ * @param statusCode - HTTP status code
+ * @param method - HTTP method
+ * @param url - URL of the request
+ * @param responseTime - time taken by request
+ * @param responseTimeUnit - ms or seconds
+ * @param warn - log as warning
+ */
+function log(statusCode: number, method: string, url: string, responseTime: number, responseTimeUnit: string, warn?: boolean): void {
+  const methodName = warn ? 'warn' : 'info';
+  logger[methodName](`${statusCode} ${method} ${url} - ${responseTime}${responseTimeUnit}`);
+}
+
+/**
  * @public
  *
  * This method logs the response time for HTTP requests made to the server
@@ -20,9 +34,15 @@ async function logResponseTime(ctx: Context, next: Next): Promise<void> {
 
   try {
     await next();
-  } finally {
+
     const rt = Date.now() - start;
-    logger.info(`${ctx.status} ${ctx.method} ${ctx.url} - ${rt}ms`);
+    log(ctx.status, ctx.method, ctx.url, rt, 'ms', false);
+  } catch (err) {
+    const statusCode = err.statusCode || err.status || 500;
+    const rt = Date.now() - start;
+
+    log(statusCode, ctx.method, ctx.url, rt, 'ms', true);
+    throw err;
   }
 }
 
