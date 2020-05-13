@@ -59,7 +59,7 @@ async function addPayment(ctx: Context): Promise<void> {
   }
 
   if (!paymentTime.isValid()) {
-    return ctx.throw(400, `'time' inside payment body is not valid`);
+    return ctx.throw(400, `'time' inside payment body is not valid ISO date string`);
   }
 
   // ----------------------------------- 1. Check if contractId exists in DB --------------------------------
@@ -100,7 +100,8 @@ async function addPayment(ctx: Context): Promise<void> {
  * @public
  *
  * DELETE /contracts/:contractId/payments/:paymentId
- * This method deletes an existing payment of a contract from the DB
+ * This method soft deletes an existing payment of a contract from the DB
+ * by setting {isDeleted: true} in "payments" collection for provided contractId
  *
  * @param {Context} ctx - koa context object
  */
@@ -150,27 +151,49 @@ async function deletePayment(ctx: Context): Promise<void> {
  *
  * PUT /contracts/:contractId/payments/:paymentId
  * This method updates an existing payment of a contract in the DB
+ * Only 'description', 'value' and 'time' can be updated
  *
  * @param {Context} ctx - koa context object
  */
 async function modifyPayment(ctx: Context): Promise<void> {
   const { contractId, paymentId } = ctx.params as {contractId: string; paymentId: string};
   const { description, value, time } = ctx.request.body as paymentModel.UpdatePaymentStructure;
-  const updatedPaymentTime = moment(time, moment.ISO_8601, true);
+  const updatedPaymentTime = time && moment(time, moment.ISO_8601, true);
 
   let err;
   let updatedPaymentRes: paymentModel.UpdateOneResult | undefined;
   let foundContract: contractsModel.Contract | null | undefined;
+  let updateObj: Partial<{description: string; value: number; time: Date}> = {};
 
-  if (!description && typeof value !== 'number' && !time) {
-    return ctx.throw(400, `Atleast 'description' or 'value' = 'as number' or 'time' is required in request body`);
+  // ------------------------------------- 1. Validation ------------------------------------------
+  if (description) {
+    if (typeof description !== 'string' || !description.trim()) {
+      return ctx.throw(400, `'description' must be a string and cannot be empty string`);
+    }
+    updateObj.description = description;
   }
 
-  if (time && !updatedPaymentTime.isValid()) {
-    return ctx.throw(400, `Invalid 'time' passed in the request body`);
+  if (time) {
+    if (!updatedPaymentTime?.isValid()) {
+      return ctx.throw(400, `'time' inside payment body is not valid ISO date string `);
+    }
+    updateObj.time = time;
   }
 
-  // ----------------------------------- 1. Check if contractId exists in DB --------------------------------
+  if (value) {
+    if (typeof value !== 'number') {
+      return ctx.throw(400, `'value' must be a number`);
+    }
+
+    updateObj.value = value;
+  }
+
+  if (!Object.keys(updateObj).length) {
+    return ctx.throw(400, `Atleast 'description' or 'value' = 'as number' or 'time' = 'ISO date string' is required in request body`);
+  }
+  // ------------------------------------------ 1. END ----------------------------------------------------
+
+  // ----------------------------------- 2. Check if contractId exists in DB --------------------------------
   [err, foundContract] = await formatPromiseResult<Error, contractsModel.Contract | null>(
     contractsModel.getContractById(contractId)
   );
@@ -183,11 +206,11 @@ async function modifyPayment(ctx: Context): Promise<void> {
   if (!foundContract) {
     return ctx.throw(404, `contractId = '${contractId}' not found in database`);
   }
-  // ------------------------------------------------ 1. END ------------------------------------------------
+  // ------------------------------------------------ 2. END ------------------------------------------------
 
-  // --------------------------- 2. Update payment of a contract by paymentId --------------------------------
+  // --------------------------- 3. Update payment of a contract by paymentId --------------------------------
   [err, updatedPaymentRes] = await formatPromiseResult<Error, paymentModel.UpdateOneResult>(
-    paymentModel.updatePaymentById(paymentId, { description, value, time: updatedPaymentTime.toDate() })
+    paymentModel.updatePaymentById(paymentId, updateObj)
   );
 
   if (err) {
@@ -198,7 +221,7 @@ async function modifyPayment(ctx: Context): Promise<void> {
   if (!updatedPaymentRes?.nModified) {
     return ctx.throw(404, `paymentId = '${paymentId}' not found in the database`);
   }
-  // ---------------------------------------------- 2. END ------------------------------------------------------
+  // ---------------------------------------------- 3. END ------------------------------------------------------
 
   ctx.status = 200;
   ctx.body = `Updated payment information for '${paymentId}'`;
