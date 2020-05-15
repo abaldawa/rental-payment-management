@@ -5,15 +5,7 @@
  */
 
 import mongoose from 'mongoose';
-
-interface MongoConfig {
-    dbHost: string;
-    dbPort: string;
-    dbName: string;
-    dbUser?: string;
-    dbPassword?: string;
-    authSource?: string;
-}
+import { MongoDbConfigStruct } from '../config/config';
 
 /**
  * @private
@@ -21,11 +13,11 @@ interface MongoConfig {
  * This method accepts a config object and returns a mongodb connection URL string
  * as per mongodb guideline
  *
- * @param {MongoConfig} config This object has all the necessary details to
+ * @param {MongoDbConfigStruct} config This object has all the necessary details to
  *                             connect to mongodb server as configured by user
  * @returns {string} - ex: "mongodb://user:password@host:port/dbname?authSource=source"
  */
-function getMongoUrlFromConfig(config: MongoConfig): string {
+function getMongoUrlFromConfig(config: MongoDbConfigStruct): string {
   let
     adminAuthSource;
   let URL = 'mongodb://';
@@ -48,10 +40,10 @@ function getMongoUrlFromConfig(config: MongoConfig): string {
  *
  * This method connects mongoose to mongoDB server
  *
- * @param {MongoConfig} dbConfig
+ * @param {MongoDbConfigStruct} dbConfig
  * @returns {Promise<void>} If successful then resolves to undefined or rejects with error
  */
-function createConnection(dbConfig: MongoConfig): Promise<void> {
+function createConnection(dbConfig: MongoDbConfigStruct): Promise<void> {
   const
     URL = getMongoUrlFromConfig(dbConfig);
 

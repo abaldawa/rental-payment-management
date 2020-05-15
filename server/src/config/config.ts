@@ -9,7 +9,7 @@ import { httpServer, mongodbConfig } from './serverConfig.json';
 
 type MongoDbConfigStruct = {
   dbHost: string;
-  dbPort: string;
+  dbPort: number;
   dbName: string;
   dbUser: string;
   dbPassword: string;
@@ -42,6 +42,7 @@ function getMongoDbConfig(): MongoDbConfigStruct {
 }
 
 export {
+  MongoDbConfigStruct,
   getPort,
   getMongoDbConfig
 };
